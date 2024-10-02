@@ -1,4 +1,5 @@
-import { logger, s3 } from 'config';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { logger, client } from 'config';
 import { Request, Response } from 'express';
 
 /**
@@ -9,12 +10,24 @@ import { Request, Response } from 'express';
  */
 const uploadProductMedia = async (req: Request, res: Response) => {
     try {
-        const { files } = req;
-        const { shopId } = req.body as { shopId: string };
-        if (!files) {
+        const { files: reqFiles } = req;
+        const { shopId, fileKeys } = req.body as { shopId: string, fileKeys: string[] };
+        if (!reqFiles) {
             throw new Error('No files found');
         }
-        console.log(files);
+        
+        const files = reqFiles as Express.Multer.File[];
+        const promises = files.map(async (file: Express.Multer.File, index: number) => {
+            const params = {
+                Bucket: process.env.AWS_BUCKET_NAME || '',
+                Key: `${shopId}/${fileKeys[index]}`,
+                Body: file.buffer,
+            };
+            const command = new PutObjectCommand(params);
+            return client.send(command);
+        });
+
+        await Promise.all(promises);
 
         res.status(200).json({ message: 'Files uploaded successfully' });
     } catch (error) {

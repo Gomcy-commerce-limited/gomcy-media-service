@@ -9,6 +9,7 @@ describe("POST /upload-product-media", () => {
         .post("/upload-product-media")
         .attach("files", "src/test/resources/image.png")
         .field("shopId", "123")
+        .field("fileKeys", ["image1"])
         .expect(200)
         .end((err, res) => {
             if (err) {
